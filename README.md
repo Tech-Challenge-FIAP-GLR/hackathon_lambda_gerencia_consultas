@@ -87,5 +87,31 @@ Para acessar os endpoints da API, você precisa incluir um token de portador no 
     "consulta_id": "1721950956772"
   }
   ```
+  ## Autenticação
+
+### Autenticação do Médico
+
+- Método: `GET`
+- Endpoint: `/token/medico`
+- Corpo da requisição:
+  ```json
+  {
+    "crm": "12345sp",
+    "password": "12345Abc@@@"
+  }
+  ```
+
+### Autenticação do Paciente
+
+- Método: `GET`
+- Endpoint: `/token/paciente`
+- Corpo da requisição:
+  ```json
+  {
+    "cpf": "22496741839",
+    "email": "22496741839@teste.com",
+    "password": "Teste@22496741839"
+  }
+  ```
 
 Espero que esta documentação seja útil para entender e utilizar a API Health&Med. Se você tiver alguma dúvida adicional, não hesite em perguntar.
