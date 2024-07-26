@@ -9,7 +9,7 @@ export const handler = async (event, context) => {
     let body;
     let statusCode = 200;
     const headers = { "Content-Type": "application/json" };
-    //teste
+    
     try {
         switch (event.routeKey) {
             case "POST /consultas":
@@ -19,19 +19,20 @@ export const handler = async (event, context) => {
                     TableName: tableName,
                     Item: { consulta_id, paciente_id, medico_id, data_hora_id, status: 'pendente' }
                 }));
-                body = 'Consulta criada com sucesso!';
+                body = { message: 'Consulta criada com sucesso!', consulta_id };
                 break;
 
             case "DELETE /consultas/{consulta_id}":
+                const deletedConsultaId = event.pathParameters.consulta_id;
                 await dynamo.send(new DeleteCommand({
                     TableName: tableName,
-                    Key: { consulta_id: event.pathParameters.consulta_id }
+                    Key: { consulta_id: deletedConsultaId }
                 }));
-                body = `Consulta cancelada com sucesso!`;
+                body = { message: 'Consulta cancelada com sucesso!', consulta_id: deletedConsultaId };
                 break;
 
-            case "GET /consultas/medico":
-                const medicoId = event.queryStringParameters.medico_id;
+            case "GET /consultas/medico/{medico_id}":
+                const medicoId = event.pathParameters.medico_id;
                 const medicoParams = {
                     TableName: tableName,
                     FilterExpression: 'medico_id = :medico_id',
@@ -41,8 +42,8 @@ export const handler = async (event, context) => {
                 body = medicoData.Items;
                 break;
 
-            case "GET /consultas/paciente":
-                const pacienteId = event.queryStringParameters.paciente_id;
+            case "GET /consultas/paciente/{paciente_id}":
+                const pacienteId = event.pathParameters.paciente_id;
                 const pacienteParams = {
                     TableName: tableName,
                     FilterExpression: 'paciente_id = :paciente_id',
@@ -50,6 +51,26 @@ export const handler = async (event, context) => {
                 };
                 const pacienteData = await dynamo.send(new ScanCommand(pacienteParams));
                 body = pacienteData.Items;
+                break;
+
+            case "GET /consultas/medico":
+                const medicoAllParams = {
+                    TableName: tableName,
+                    ProjectionExpression: 'consulta_id, paciente_id, medico_id, data_hora_id, #status',
+                    ExpressionAttributeNames: { '#status': 'status' }
+                };
+                const medicoAllData = await dynamo.send(new ScanCommand(medicoAllParams));
+                body = medicoAllData.Items;
+                break;
+
+            case "GET /consultas/paciente":
+                const pacienteAllParams = {
+                    TableName: tableName,
+                    ProjectionExpression: 'consulta_id, paciente_id, medico_id, data_hora_id, #status',
+                    ExpressionAttributeNames: { '#status': 'status' }
+                };
+                const pacienteAllData = await dynamo.send(new ScanCommand(pacienteAllParams));
+                body = pacienteAllData.Items;
                 break;
 
             case "POST /consultas/aceitar":
@@ -61,7 +82,7 @@ export const handler = async (event, context) => {
                     ExpressionAttributeValues: { ':medico_id': aceitarBody.medico_id, ':status': 'aceita' },
                     ExpressionAttributeNames: { '#status': 'status' }
                 }));
-                body = 'Consulta aceita com sucesso!';
+                body = { message: 'Consulta aceita com sucesso!', consulta_id: aceitarBody.consulta_id };
                 break;
 
             case "POST /consultas/cancelar":
@@ -73,7 +94,7 @@ export const handler = async (event, context) => {
                     ExpressionAttributeValues: { ':status': 'cancelada' },
                     ExpressionAttributeNames: { '#status': 'status' }
                 }));
-                body = 'Consulta cancelada com sucesso!';
+                body = { message: 'Consulta cancelada com sucesso!', consulta_id: cancelarBody.consulta_id };
                 break;
 
             default:
@@ -81,7 +102,7 @@ export const handler = async (event, context) => {
         }
     } catch (error) {
         statusCode = 400;
-        body = error.message;
+        body = { error: error.message };
     } finally {
         body = JSON.stringify(body);
     }
